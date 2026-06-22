@@ -113,8 +113,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const refresh = localStorage.getItem(REFRESH_TOKEN_KEY);
         if (refresh) {
           try {
-            const { access } = await refreshTokenRequest(refresh);
+            const { access, refresh: newRefresh } = await refreshTokenRequest(refresh);
             localStorage.setItem(ACCESS_TOKEN_KEY, access);
+            if (newRefresh) {
+              localStorage.setItem(REFRESH_TOKEN_KEY, newRefresh);
+            }
             const profile = normalizeAuthUser(await fetchProfileRequest());
             setUser(profile);
             localStorage.setItem(USER_KEY, JSON.stringify(profile));

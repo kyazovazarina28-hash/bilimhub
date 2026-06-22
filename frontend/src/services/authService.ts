@@ -43,8 +43,8 @@ export async function fetchProfileRequest(): Promise<AuthUser> {
 
 export async function refreshTokenRequest(
   refresh: string,
-): Promise<{ access: string }> {
-  const { data } = await axiosInstance.post<{ access: string }>(
+): Promise<{ access: string; refresh?: string }> {
+  const { data } = await axiosInstance.post<{ access: string; refresh?: string }>(
     "auth/token/refresh/",
     { refresh },
   );
