@@ -6,6 +6,7 @@ environment аркылуу башкарылат (.env).
 """
 
 from datetime import timedelta
+import os
 from pathlib import Path
 
 import environ
@@ -18,8 +19,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 env = environ.Env(
     DEBUG=(bool, False),
-    ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1"]),
-    CORS_ALLOWED_ORIGINS=(list, []),
+    ALLOWED_HOSTS=(
+        list,
+        ["localhost", "127.0.0.1", "bilimhub-backend-7v6b.onrender.com"],
+    ),
     CORS_ALLOW_ALL_ORIGINS=(bool, False),
 )
 
@@ -183,7 +186,7 @@ MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # ---------------------------------------------------------------------------
-# CORS — фронтенд порттору
+# CORS — фронтенд порттору (React/Vite + Render production)
 # ---------------------------------------------------------------------------
 
 _default_cors_origins = [
@@ -195,10 +198,24 @@ _default_cors_origins = [
     "http://127.0.0.1:4200",
 ]
 
-CORS_ALLOWED_ORIGINS = env.list(
-    "CORS_ALLOWED_ORIGINS",
-    default=_default_cors_origins,
-)
+CORS_ALLOWED_ORIGINS = list(_default_cors_origins)
+
+# Render'деги CORS_ALLOWED_ORIGINS өзгөрмөсүн автоматтык кошуу
+env_cors = os.environ.get("CORS_ALLOWED_ORIGINS")
+if env_cors:
+    CORS_ALLOWED_ORIGINS += [
+        origin.strip() for origin in env_cors.split(",") if origin.strip()
+    ]
+
+# Кайталанууларды алып салуу
+CORS_ALLOWED_ORIGINS = list(dict.fromkeys(CORS_ALLOWED_ORIGINS))
+
+# Vercel / Netlify / Render preview URL'дери үчүн
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://.*\.vercel\.app$",
+    r"^https://.*\.netlify\.app$",
+    r"^https://.*\.onrender\.com$",
+]
 
 CORS_ALLOW_ALL_ORIGINS = env("CORS_ALLOW_ALL_ORIGINS")
 
@@ -292,15 +309,28 @@ CSRF_USE_SESSIONS = False
 CSRF_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SAMESITE = "Lax"
 
-CSRF_TRUSTED_ORIGINS = env.list(
-    "CSRF_TRUSTED_ORIGINS",
-    default=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+CSRF_TRUSTED_ORIGINS = list(
+    dict.fromkeys(
+        [
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+            "http://localhost:3000",
+            "http://127.0.0.1:3000",
+            *[
+                origin
+                for origin in CORS_ALLOWED_ORIGINS
+                if origin.startswith("https://")
+            ],
+        ],
+    ),
 )
+
+env_csrf = os.environ.get("CSRF_TRUSTED_ORIGINS")
+if env_csrf:
+    CSRF_TRUSTED_ORIGINS += [
+        origin.strip() for origin in env_csrf.split(",") if origin.strip()
+    ]
+    CSRF_TRUSTED_ORIGINS = list(dict.fromkeys(CSRF_TRUSTED_ORIGINS))
 
 # Production-only (DEBUG=False учуруnda)
 if not DEBUG:
